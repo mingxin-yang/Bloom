@@ -16,14 +16,24 @@
 package com.example.androiddevchallenge
 
 import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
-import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.androiddevchallenge.ui.theme.LoginScreen
 import com.example.androiddevchallenge.ui.theme.MyTheme
+
+enum class Screen {
+    Welcome, Login, Home
+}
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,11 +46,49 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
+var extime: Long = 0
+
 // Start building your app here!
 @Composable
-fun MyApp() {
+fun ComponentActivity.MyApp() {
+    val (screen, setScreen) = remember { mutableStateOf(Screen.Welcome) }
+    DisposableEffect(screen) {
+        extime = 0
+        val callback = object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                when (screen) {
+                    Screen.Home -> {
+                        if (System.currentTimeMillis() - extime > 1000) {
+                            Toast.makeText(
+                                this@MyApp, "Press again to exit app",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            extime = System.currentTimeMillis()
+                        } else {
+                            this@MyApp.finish()
+                        }
+                    }
+                    Screen.Login -> {
+                        setScreen(Screen.Welcome)
+                    }
+                    else -> {
+                        this@MyApp.finish()
+                    }
+                }
+            }
+        }
+        this@MyApp.onBackPressedDispatcher.addCallback(callback)
+        onDispose {
+            callback.remove()
+        }
+    }
+
     Surface(color = MaterialTheme.colors.background) {
-        Text(text = "Ready... Set... GO!")
+        when (screen) {
+            Screen.Welcome -> WelcomeScreen(navigateTo = setScreen)
+            Screen.Login -> LoginScreen(navigateTo = setScreen)
+            Screen.Home -> HomeScreen()
+        }
     }
 }
 
@@ -48,7 +96,7 @@ fun MyApp() {
 @Composable
 fun LightPreview() {
     MyTheme {
-        MyApp()
+        ComponentActivity().MyApp()
     }
 }
 
@@ -56,6 +104,6 @@ fun LightPreview() {
 @Composable
 fun DarkPreview() {
     MyTheme(darkTheme = true) {
-        MyApp()
+        ComponentActivity().MyApp()
     }
 }
